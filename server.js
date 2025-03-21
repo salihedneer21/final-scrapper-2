@@ -41,28 +41,41 @@ let isProcessing = false;
 async function bookAppointment(appointmentDetails) {
     try {
         const result = await bookTherapyAppointment(
-            appointmentDetails.href, // Use the href field from appointmentDetails
+            appointmentDetails.href,
             {
                 firstName: appointmentDetails.firstName,
                 lastName: appointmentDetails.lastName,
                 email: appointmentDetails.email,
                 phone: appointmentDetails.phone,
                 dateOfBirth: appointmentDetails.dateOfBirth,
-                comments: appointmentDetails.comments // Add comments field
+                comments: appointmentDetails.comments
             }
         );
         
-        // Only update database if booking was successful
-        if (result.status === 'booked') {
-            await AppointmentStatus.findByIdAndUpdate(
-                appointmentDetails._id,
-                { status: result.status }
-            );
-        }
+        // Update the appointment status based on the result
+        await AppointmentStatus.findByIdAndUpdate(
+            appointmentDetails._id,
+            { 
+                status: result.status === 'success' ? 'booked' : 'failed',
+                lastError: result.error || null,
+                lastAttempt: new Date()
+            }
+        );
 
         return result.status;
     } catch (error) {
         console.error('Error booking appointment:', error);
+        
+        // Update the appointment with error information
+        await AppointmentStatus.findByIdAndUpdate(
+            appointmentDetails._id,
+            { 
+                status: 'failed',
+                lastError: error.message,
+                lastAttempt: new Date()
+            }
+        );
+        
         return 'failed';
     }
 }

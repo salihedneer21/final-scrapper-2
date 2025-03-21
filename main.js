@@ -27,16 +27,40 @@ async function bookTherapyAppointment(url, patientInfo) {
 
     // Connect to the browser
     const { page, browser } = await connect({
-        headless: false,
+        headless: true,
         turnstile: true,
     });
 
-    try {
-        await page.goto(url, {
-            waitUntil: 'networkidle0',
-            timeout: 60000
-        });
+    let retryCount = 0;
+    const maxRetries = 3;
+    const baseTimeout = 90000; // 90 seconds
 
+    while (retryCount < maxRetries) {
+        try {
+            await page.goto(url, {
+                waitUntil: 'networkidle0',
+                timeout: baseTimeout * (retryCount + 1) // Increase timeout with each retry
+            });
+            break; // If successful, break the retry loop
+        } catch (error) {
+            retryCount++;
+            console.log(`Navigation attempt ${retryCount} failed: ${error.message}`);
+            
+            if (retryCount === maxRetries) {
+                await browser.close();
+                return {
+                    status: 'error',
+                    message: 'Failed to load the appointment page after multiple attempts',
+                    error: error.message
+                };
+            }
+            
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+        }
+    }
+
+    try {
         const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
         await delay(3000);
 
