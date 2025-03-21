@@ -1,10 +1,14 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors'); // Add this line
 const { bookTherapyAppointment } = require('./main.js');
 const AppointmentStatus = require('./models/AppointmentStatus');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Enable CORS for all routes
+app.use(cors()); // Add this line before other middleware
 
 // MongoDB connection
 mongoose.connect('mongodb+srv://hayim:b7ygfCTUCQeuysw7@cluster0.obhkx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
