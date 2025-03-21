@@ -12,8 +12,6 @@ app.use(cors()); // Add this line before other middleware
 
 // MongoDB connection
 mongoose.connect('mongodb+srv://hayim:b7ygfCTUCQeuysw7@cluster0.obhkx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
@@ -41,34 +39,29 @@ let isProcessing = false;
 async function bookAppointment(appointmentDetails) {
     try {
         const result = await bookTherapyAppointment(
-            appointmentDetails.href,
+            appointmentDetails.href, // Use the href field from appointmentDetails
             {
                 firstName: appointmentDetails.firstName,
                 lastName: appointmentDetails.lastName,
                 email: appointmentDetails.email,
                 phone: appointmentDetails.phone,
                 dateOfBirth: appointmentDetails.dateOfBirth,
-                comments: appointmentDetails.comments
+                comments: appointmentDetails.comments // Add comments field
             }
         );
         
-        // Only update if booking was successful
-        if (result.status === 'success') {
+        // Only update database if booking was successful
+        if (result.status === 'booked') {
             await AppointmentStatus.findByIdAndUpdate(
                 appointmentDetails._id,
-                { 
-                    status: 'booked',
-                    lastAttempt: new Date()
-                }
+                { status: result.status }
             );
-            return 'booked';
         }
-        
-        // For any other status, don't update the database
-        return 'unknown';
+
+        return result.status;
     } catch (error) {
-        console.error('Error booking appointment:', error);    
-        return 'unknown';
+        console.error('Error booking appointment:', error);
+        return 'failed';
     }
 }
 
@@ -89,17 +82,6 @@ async function processQueue() {
             for (const appointment of unknownAppointments) {
                 console.log(`Processing appointment for ${appointment.firstName}`);
                 const status = await bookAppointment(appointment);
-                
-                if (status === 'booked') {
-                    // Only update database if status is 'booked'
-                    await AppointmentStatus.findByIdAndUpdate(
-                        appointment._id,
-                        {
-                            status: 'booked',
-                        }
-                    );
-                }
-                
                 console.log(`Appointment processing completed with status: ${status}`);
             }
         }
