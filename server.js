@@ -52,20 +52,23 @@ async function bookAppointment(appointmentDetails) {
             }
         );
         
-        // Update the appointment status based on the result
-        await AppointmentStatus.findByIdAndUpdate(
-            appointmentDetails._id,
-            { 
-                status: result.status === 'success' ? 'booked' : 'unknown',
-                lastError: result.error || null,
-                lastAttempt: new Date()
-            }
-        );
-
-        return result.status;
+        // Only update if booking was successful
+        if (result.status === 'success') {
+            await AppointmentStatus.findByIdAndUpdate(
+                appointmentDetails._id,
+                { 
+                    status: 'booked',
+                    lastAttempt: new Date()
+                }
+            );
+            return 'booked';
+        }
+        
+        // For any other status, don't update the database
+        return 'unknown';
     } catch (error) {
         console.error('Error booking appointment:', error);    
-        return 'failed';
+        return 'unknown';
     }
 }
 
@@ -86,6 +89,17 @@ async function processQueue() {
             for (const appointment of unknownAppointments) {
                 console.log(`Processing appointment for ${appointment.firstName}`);
                 const status = await bookAppointment(appointment);
+                
+                if (status === 'booked') {
+                    // Only update database if status is 'booked'
+                    await AppointmentStatus.findByIdAndUpdate(
+                        appointment._id,
+                        {
+                            status: 'booked',
+                        }
+                    );
+                }
+                
                 console.log(`Appointment processing completed with status: ${status}`);
             }
         }
