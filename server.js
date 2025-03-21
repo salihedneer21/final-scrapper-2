@@ -64,18 +64,7 @@ async function bookAppointment(appointmentDetails) {
 
         return result.status;
     } catch (error) {
-        console.error('Error booking appointment:', error);
-        
-        // Update the appointment with error information
-        await AppointmentStatus.findByIdAndUpdate(
-            appointmentDetails._id,
-            { 
-                status: 'failed',
-                lastError: error.message,
-                lastAttempt: new Date()
-            }
-        );
-        
+        console.error('Error booking appointment:', error);    
         return 'failed';
     }
 }
