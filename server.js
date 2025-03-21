@@ -56,7 +56,7 @@ async function bookAppointment(appointmentDetails) {
         await AppointmentStatus.findByIdAndUpdate(
             appointmentDetails._id,
             { 
-                status: result.status === 'success' ? 'booked' : 'failed',
+                status: result.status === 'success' ? 'booked' : 'unknown',
                 lastError: result.error || null,
                 lastAttempt: new Date()
             }
